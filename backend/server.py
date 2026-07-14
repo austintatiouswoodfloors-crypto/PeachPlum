@@ -57,7 +57,7 @@ class Score(BaseModel):
 # ------------------------- Routes -------------------------
 @api_router.get("/")
 async def root():
-    return {"message": "Momo Sumomo API"}
+    return {"message": "Plum Peach API"}
 
 
 @api_router.post("/scores", response_model=Score)

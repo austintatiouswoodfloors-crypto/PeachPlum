@@ -46,5 +46,14 @@ shrinks and gets shorter as score rises. A WRONG tap OR a timeout = GAME OVER.
 - P2: rank feedback on game over ("You're #N in the world!") using /api/scores/rank.
 - P2: custom app icon / splash matching the fruit theme.
 
-## Next tasks
-- Add sound + share-score feature; surface world rank on game over.
+## Update (2026-07-14, iteration 2)
+- Renamed game to **Plum Peach**; ALL UI text is now English (no Japanese).
+- Replaced static-stack + per-fruit-timer with a **continuous falling stream**
+  (`src/game/FallingField.tsx`, requestAnimationFrame loop). Fruits fall from the top;
+  the LOWEST fruit (orange target ring) is the target — tap its matching PEACH/PLUM button
+  before it crosses the dashed catch line. Wrong tap OR missed fruit = game over.
+- Speed ramps gradually; at score **200** it goes **TURBO** (super fast) and fruits spawn at
+  RANDOM x-positions across the screen (single centered column before 200).
+  `speedFor(score)`: <200 → 120+score*1.15 ; ≥200 → 620+(score-200)*3.2.
+- Top HUD now shows a SPEED meter (turns red "TURBO!!" at 200+).
+- Verified: 13/13 backend tests + all frontend flows pass.
