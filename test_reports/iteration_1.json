@@ -1,0 +1,39 @@
+{
+  "summary": "Full-stack testing of Momo Sumomo MVP. Backend: 12/12 pytest cases pass — health, POST /api/scores (Japanese name, empty->ゲスト default, >16 char truncation, negative clamp), GET /api/scores/top (sort desc + limit clamp), GET /api/scores/rank (rank/total shape + high-score=1 + missing param 422). No mongo _id leaks. Frontend (mobile 375x667 web preview): title-screen renders with best pill and all 3 buttons; howto/ranking navigation works; ranking loads populated list from backend; game-screen shows score/buttons/speed bar; gameover-overlay auto-triggers on ~1.5s timeout with all elements (final-score, retry, overlay-home, overlay-ranking, name-input, submit-score); score submission successfully POSTs, UI shows 'ランキングに登録しました', and the entry is retrievable via GET /api/scores/top; retry-button restores playing state and resets score to 0; best-effort peach tap incremented score. No red screens, no failed requests.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      { "screen": "global (react-native-web)", "issues": [
+        "Console deprecation warnings: 'shadow*' style props deprecated — should use boxShadow on web. Present on most screens (title, game, ranking).",
+        "Console deprecation warning: props.pointerEvents deprecated — should be moved into style.pointerEvents (index.tsx sun View, game.tsx string/catchLine)."
+      ]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "(Cosmetic) Replace deprecated shadow* style props with boxShadow (or gate with Platform.select) to silence RN-Web warnings.",
+    "(Cosmetic) Move pointerEvents from prop to style.pointerEvents in Views (index.tsx sun; game.tsx string, catchLine)."
+  ],
+  "critical_code_review_comments": [
+    "Backend properly excludes _id via projection in /scores/top — good.",
+    "ScoreCreate validators correctly enforce empty->ゲスト, 16-char truncation, negative->0.",
+    "Frontend uses process.env.EXPO_PUBLIC_BACKEND_URL correctly; all interactive elements have testID; text is wrapped in <Text>; StyleSheet.create used throughout.",
+    "playingRef guard prevents further taps after phase==='over' — verified via retry flow.",
+    "durationForScore not viewed but timeout at ~1.5s confirmed working (overlay appears within 8s wait)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py (new)"
+  ],
+  "success_rate": { "backend": "100% (12/12)", "frontend": "100% of deterministic flows" },
+  "seed_data_creation": "Created several TEST_-prefixed score rows in Mongo (TEST_プレイヤー 42, TEST_persist 99999, TEST_a/b/c, TEST_rank 100, TEST_ui_qa 0, TEST_neg 0) via pytest + UI submit. Safe to leave for future regression.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Base URL: https://cloba-mobile.preview.emergentagent.com. Backend uses /api prefix. Score submission returns {id,name,score,created_at}. Overlay reliably auto-appears within ~1.6s of entering /game because durationForScore(0)=1500ms. To test gameplay tap-increment, rapid consecutive taps of same fruit type may end the game on wrong bead; the smoke test in this iteration used best-effort 3 peach taps and observed score increment. Seed data present: TEST_persist 99999 is currently rank #1.",
+  "rca_of_issue": "No bugs found. All requested features verified working."
+}
