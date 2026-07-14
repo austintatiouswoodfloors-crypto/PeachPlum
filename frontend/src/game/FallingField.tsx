@@ -11,10 +11,10 @@ import { View, StyleSheet, LayoutChangeEvent } from "react-native";
 import * as Haptics from "expo-haptics";
 
 import { FruitToken } from "./FruitToken";
-import { COLORS, FruitType } from "./theme";
+import { FruitType } from "./theme";
 
-const GAP = 128; // vertical spacing between fruits in the stream
-const FRUIT = 100;
+const GAP = 224; // vertical spacing between fruits in the stream
+const FRUIT = 190;
 const BUFFER = 4; // fruits kept queued just above the top edge
 const INITIAL = 9;
 export const TURBO_SCORE = 200;
@@ -263,7 +263,6 @@ export const FallingField = forwardRef<FieldHandle, Props>(function FallingField
             }}
           />
         ))}
-      {dims && <View pointerEvents="none" style={[styles.catchLine, { top: dims.h - FRUIT + FRUIT / 2 - 4 }]} />}
     </View>
   );
 });
@@ -271,14 +270,4 @@ export const FallingField = forwardRef<FieldHandle, Props>(function FallingField
 const styles = StyleSheet.create({
   field: { flex: 1, overflow: "hidden" },
   fruit: { position: "absolute", top: 0, left: 0, width: FRUIT, height: FRUIT },
-  catchLine: {
-    position: "absolute",
-    left: 12,
-    right: 12,
-    height: 0,
-    borderTopWidth: 3,
-    borderStyle: "dashed",
-    borderColor: COLORS.inkSoft,
-    opacity: 0.55,
-  },
 });

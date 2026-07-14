@@ -7,9 +7,9 @@ import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { ZoomIn } from "react-native-reanimated";
 
-import { COLORS, FruitType, LABELS } from "@/src/game/theme";
+import { COLORS, FruitType } from "@/src/game/theme";
 import { FruitToken } from "@/src/game/FruitToken";
-import { FallingField, FieldHandle, TURBO_SCORE, speedFor } from "@/src/game/FallingField";
+import { FallingField, FieldHandle, TURBO_SCORE } from "@/src/game/FallingField";
 import { storage } from "@/src/utils/storage";
 import { submitScore } from "@/src/game/api";
 import { BEST_KEY } from "./index";
@@ -77,12 +77,6 @@ export default function Game() {
     }
   }, [name, submitState]);
 
-  const isTurbo = score >= TURBO_SCORE;
-  const speedFrac = Math.min(
-    1,
-    Math.max(0, (speedFor(score) - speedFor(0)) / (speedFor(300) - speedFor(0)))
-  );
-
   return (
     <LinearGradient colors={[COLORS.bgTop, COLORS.bgBottom]} style={styles.fill} testID="game-screen">
       {/* top bar */}
@@ -102,28 +96,11 @@ export default function Game() {
         </View>
       </View>
 
-      {/* speed meter */}
-      <View style={styles.meterRow}>
-        <Text style={[styles.meterLabel, isTurbo && styles.turboLabel]}>
-          {isTurbo ? "TURBO!!" : "SPEED"}
-        </Text>
-        <View style={styles.barTrack}>
-          <View style={[styles.barFill, { width: `${Math.round(speedFrac * 100)}%` }]}>
-            <LinearGradient
-              colors={isTurbo ? ["#FF5A3C", "#B01029"] : [COLORS.peach.btnFrom, COLORS.plum.btnFrom]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={StyleSheet.absoluteFill}
-            />
-          </View>
-        </View>
-      </View>
-
       {/* falling stream */}
       <FallingField ref={fieldRef} onScore={handleScore} onGameOver={handleGameOver} />
 
       {/* buttons */}
-      <View style={[styles.buttons, { paddingBottom: insets.bottom + 16 }]}>
+      <View style={[styles.buttons, { paddingBottom: insets.bottom + 20 }]}>
         <FruitButton type="peach" onPress={() => fieldRef.current?.press("peach")} />
         <FruitButton type="plum" onPress={() => fieldRef.current?.press("plum")} />
       </View>
@@ -222,26 +199,14 @@ export default function Game() {
 }
 
 function FruitButton({ type, onPress }: { type: FruitType; onPress: () => void }) {
-  const c = COLORS[type];
   return (
     <Pressable
       testID={`tap-${type}-button`}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.fruitBtn,
-        { shadowColor: c.btnShadow },
-        pressed && { transform: [{ translateY: 4 }], opacity: 0.94 },
-      ]}
+      hitSlop={16}
+      style={({ pressed }) => [styles.fruitBtn, pressed && { transform: [{ scale: 0.88 }] }]}
     >
-      <LinearGradient
-        colors={[c.btnFrom, c.btnTo]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={styles.fruitBtnInner}
-      >
-        <FruitToken type={type} size={52} />
-        <Text style={styles.fruitBtnLabel}>{LABELS[type].en}</Text>
-      </LinearGradient>
+      <FruitToken type={type} size={112} />
     </Pressable>
   );
 }
@@ -332,17 +297,15 @@ const styles = StyleSheet.create({
   },
   buttons: {
     flexDirection: "row",
-    gap: 14,
-    paddingHorizontal: 18,
-    paddingTop: 4,
+    justifyContent: "space-around",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingTop: 8,
   },
   fruitBtn: {
-    flex: 1,
-    borderRadius: 24,
-    shadowOpacity: 0.55,
-    shadowRadius: 0,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 8,
   },
   fruitBtnInner: {
     height: 128,
