@@ -13,19 +13,32 @@ import * as Haptics from "expo-haptics";
 import { FruitToken } from "./FruitToken";
 import { COLORS, FruitType } from "./theme";
 
-const GAP = 84; // vertical spacing between fruits in the stream
-const FRUIT = 56;
+const GAP = 128; // vertical spacing between fruits in the stream
+const FRUIT = 100;
 const BUFFER = 4; // fruits kept queued just above the top edge
 const INITIAL = 9;
 export const TURBO_SCORE = 200;
 
-// Fall speed in px/sec. Slowly ramps, then jumps to "super fast" at TURBO_SCORE.
+// Fall speed in px/sec. Starts slow, builds up gradually (reaches the old opening
+// pace around ~80 taps) and keeps climbing, then jumps to "super fast" turbo at 200.
 export function speedFor(score: number): number {
-  if (score < TURBO_SCORE) return 120 + score * 1.15; // gradual increase
-  return 620 + (score - TURBO_SCORE) * 3.2; // super fast turbo
+  if (score < TURBO_SCORE) return 70 + score * 0.75;
+  return 520 + (score - TURBO_SCORE) * 3;
 }
 
 type Bead = { id: number; type: FruitType; x: number; baseY: number };
+
+type Particle = {
+  id: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  maxLife: number;
+  size: number;
+  color: string;
+};
 
 export type FieldHandle = { press: (t: FruitType) => void; restart: () => void };
 
@@ -52,8 +65,38 @@ export const FallingField = forwardRef<FieldHandle, Props>(function FallingField
   const rafRef = useRef<number | null>(null);
   const lastTsRef = useRef(0);
   const dimsRef = useRef<{ w: number; h: number } | null>(null);
+  const particlesRef = useRef<Particle[]>([]);
 
   const missY = useCallback(() => dimsRef.current!.h - FRUIT - 4, []);
+
+  // Firecracker burst when a fruit pops.
+  const burst = useCallback((cx: number, cy: number, type: FruitType) => {
+    const palette =
+      type === "peach"
+        ? ["#FFD98A", "#FFB454", "#F26D26", "#FF8A3D", "#FFF3D0"]
+        : ["#E8829B", "#C24A63", "#FF5A7A", "#FFD1DC", "#7C1B31"];
+    const sparks = ["#FFFFFF", "#FFE27A"];
+    const n = 22;
+    for (let i = 0; i < n; i++) {
+      const ang = (Math.PI * 2 * i) / n + Math.random() * 0.4;
+      const sp = 160 + Math.random() * 320;
+      const isSpark = Math.random() < 0.35;
+      const life = 0.45 + Math.random() * 0.4;
+      particlesRef.current.push({
+        id: uid++,
+        x: cx,
+        y: cy,
+        vx: Math.cos(ang) * sp,
+        vy: Math.sin(ang) * sp,
+        life,
+        maxLife: life,
+        size: isSpark ? 3 + Math.random() * 3 : 6 + Math.random() * 8,
+        color: isSpark
+          ? sparks[Math.floor(Math.random() * sparks.length)]
+          : palette[Math.floor(Math.random() * palette.length)],
+      });
+    }
+  }, []);
 
   const xFor = useCallback((score: number) => {
     const w = dimsRef.current!.w;
@@ -114,6 +157,20 @@ export const FallingField = forwardRef<FieldHandle, Props>(function FallingField
         return;
       }
 
+      // advance firecracker particles
+      if (particlesRef.current.length) {
+        const alive: Particle[] = [];
+        for (const p of particlesRef.current) {
+          p.life -= dt;
+          if (p.life <= 0) continue;
+          p.vy += 900 * dt; // gravity
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          alive.push(p);
+        }
+        particlesRef.current = alive;
+      }
+
       force();
       rafRef.current = requestAnimationFrame(loop);
     },
@@ -126,6 +183,7 @@ export const FallingField = forwardRef<FieldHandle, Props>(function FallingField
     travelRef.current = 0;
     scoreRef.current = 0;
     lastTsRef.current = 0;
+    particlesRef.current = [];
     buildInitial();
     onScore(0);
     runningRef.current = true;
@@ -144,13 +202,14 @@ export const FallingField = forwardRef<FieldHandle, Props>(function FallingField
         onGameOver(scoreRef.current);
         return;
       }
+      burst(low.x + FRUIT / 2, low.baseY + travelRef.current + FRUIT / 2, low.type);
       fruitsRef.current = fruitsRef.current.filter((b) => b.id !== low.id);
       scoreRef.current += 1;
       onScore(scoreRef.current);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
       force();
     },
-    [onGameOver, onScore, stop]
+    [burst, onGameOver, onScore, stop]
   );
 
   useImperativeHandle(ref, () => ({ press, restart }), [press, restart]);
@@ -170,8 +229,6 @@ export const FallingField = forwardRef<FieldHandle, Props>(function FallingField
   };
 
   const travel = travelRef.current;
-  const low = lowestOf(fruitsRef.current);
-  const lowId = low ? low.id : -1;
 
   return (
     <View style={styles.field} onLayout={onLayout}>
@@ -179,17 +236,33 @@ export const FallingField = forwardRef<FieldHandle, Props>(function FallingField
         fruitsRef.current.map((b) => {
           const y = b.baseY + travel;
           if (y < -FRUIT - 8 || y > dims.h + FRUIT) return null;
-          const isTarget = b.id === lowId;
           return (
             <View
               key={b.id}
               style={[styles.fruit, { transform: [{ translateX: b.x }, { translateY: y }] }]}
             >
-              {isTarget && <View pointerEvents="none" style={styles.ring} />}
               <FruitToken type={b.type} size={FRUIT} />
             </View>
           );
         })}
+      {dims &&
+        particlesRef.current.map((p) => (
+          <View
+            key={p.id}
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: p.size,
+              height: p.size,
+              borderRadius: p.size / 2,
+              backgroundColor: p.color,
+              opacity: Math.max(0, p.life / p.maxLife),
+              transform: [{ translateX: p.x - p.size / 2 }, { translateY: p.y - p.size / 2 }],
+            }}
+          />
+        ))}
       {dims && <View pointerEvents="none" style={[styles.catchLine, { top: dims.h - FRUIT + FRUIT / 2 - 4 }]} />}
     </View>
   );
@@ -198,16 +271,6 @@ export const FallingField = forwardRef<FieldHandle, Props>(function FallingField
 const styles = StyleSheet.create({
   field: { flex: 1, overflow: "hidden" },
   fruit: { position: "absolute", top: 0, left: 0, width: FRUIT, height: FRUIT },
-  ring: {
-    position: "absolute",
-    top: -7,
-    left: -7,
-    width: FRUIT + 14,
-    height: FRUIT + 14,
-    borderRadius: (FRUIT + 14) / 2,
-    borderWidth: 3,
-    borderColor: "#FFB454",
-  },
   catchLine: {
     position: "absolute",
     left: 12,
