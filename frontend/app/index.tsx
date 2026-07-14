@@ -41,8 +41,8 @@ export default function Title() {
       <View style={[styles.content, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 28 }]}>
         <Animated.View entering={FadeIn.duration(500)} style={styles.header}>
           <Text style={styles.kicker}>CLOBA ARCADE</Text>
-          <Text style={styles.title}>ももすもも</Text>
-          <Text style={styles.subtitle}>Momo Sumomo</Text>
+          <Text style={styles.title}>Plum Peach</Text>
+          <Text style={styles.subtitle}>FRUIT REACTION GAME</Text>
         </Animated.View>
 
         {/* fruit cluster */}
@@ -60,7 +60,7 @@ export default function Title() {
 
         <View style={styles.bestPill} testID="title-best">
           <Ionicons name="trophy" size={16} color={COLORS.peach.btnTo} />
-          <Text style={styles.bestText}>ベスト {best}</Text>
+          <Text style={styles.bestText}>BEST {best}</Text>
         </View>
 
         <Animated.View entering={FadeInDown.delay(300).springify()} style={styles.actions}>
@@ -76,7 +76,7 @@ export default function Title() {
               style={styles.playInner}
             >
               <Ionicons name="play" size={26} color="#fff" />
-              <Text style={styles.playText}>あそぶ</Text>
+              <Text style={styles.playText}>PLAY</Text>
             </LinearGradient>
           </Pressable>
 
@@ -87,7 +87,7 @@ export default function Title() {
               style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressed]}
             >
               <Ionicons name="help-circle-outline" size={22} color={COLORS.ink} />
-              <Text style={styles.secondaryText}>あそびかた</Text>
+              <Text style={styles.secondaryText}>HOW TO PLAY</Text>
             </Pressable>
             <Pressable
               testID="ranking-button"
@@ -95,7 +95,7 @@ export default function Title() {
               style={({ pressed }) => [styles.secondaryBtn, pressed && styles.pressed]}
             >
               <Ionicons name="podium-outline" size={22} color={COLORS.ink} />
-              <Text style={styles.secondaryText}>ランキング</Text>
+              <Text style={styles.secondaryText}>RANKING</Text>
             </Pressable>
           </View>
         </Animated.View>

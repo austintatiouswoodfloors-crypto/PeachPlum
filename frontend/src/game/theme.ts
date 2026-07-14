@@ -27,8 +27,8 @@ export const COLORS = {
 export type FruitType = "peach" | "plum";
 
 export const LABELS = {
-  peach: { jp: "もも", en: "PEACH" },
-  plum: { jp: "すもも", en: "PLUM" },
+  peach: { en: "PEACH" },
+  plum: { en: "PLUM" },
 };
 
 // difficulty: time budget (ms) for the current fruit, shrinks with score.

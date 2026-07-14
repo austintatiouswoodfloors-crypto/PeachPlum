@@ -49,7 +49,7 @@ export default function Ranking() {
         <Pressable testID="ranking-back" onPress={() => router.back()} style={styles.iconBtn}>
           <Ionicons name="arrow-back" size={22} color={COLORS.ink} />
         </Pressable>
-        <Text style={styles.headerTitle}>ランキング</Text>
+        <Text style={styles.headerTitle}>RANKING</Text>
         <View style={{ width: 44 }} />
       </View>
 
@@ -60,16 +60,16 @@ export default function Ranking() {
       ) : error ? (
         <View style={styles.center}>
           <Ionicons name="cloud-offline-outline" size={40} color={COLORS.inkSoft} />
-          <Text style={styles.emptyText}>読み込みに失敗しました</Text>
+          <Text style={styles.emptyText}>Failed to load</Text>
           <Pressable testID="ranking-retry" onPress={onRefresh} style={styles.retrySmall}>
-            <Text style={styles.retrySmallText}>再読み込み</Text>
+            <Text style={styles.retrySmallText}>Reload</Text>
           </Pressable>
         </View>
       ) : data.length === 0 ? (
         <View style={styles.center}>
           <Ionicons name="podium-outline" size={44} color={COLORS.inkSoft} />
-          <Text style={styles.emptyText}>まだ記録がありません</Text>
-          <Text style={styles.emptySub}>いちばん乗りでスコアを登録しよう！</Text>
+          <Text style={styles.emptyText}>No scores yet</Text>
+          <Text style={styles.emptySub}>Be the first to submit a score!</Text>
         </View>
       ) : (
         <FlatList

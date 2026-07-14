@@ -5,39 +5,19 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Ionicons } from "@expo/vector-icons";
-import Animated, {
-  FadeInDown,
-  ZoomOut,
-  ZoomIn,
-  LinearTransition,
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  cancelAnimation,
-  Easing,
-  runOnJS,
-} from "react-native-reanimated";
+import Animated, { ZoomIn } from "react-native-reanimated";
 
-import { COLORS, FruitType, LABELS, durationForScore } from "@/src/game/theme";
+import { COLORS, FruitType, LABELS } from "@/src/game/theme";
 import { FruitToken } from "@/src/game/FruitToken";
+import { FallingField, FieldHandle, TURBO_SCORE, speedFor } from "@/src/game/FallingField";
 import { storage } from "@/src/utils/storage";
 import { submitScore } from "@/src/game/api";
 import { BEST_KEY } from "./index";
-
-const FRUIT = 60;
-const QUEUE_LEN = 6;
-
-type Bead = { id: number; type: FruitType };
-
-let _uid = 0;
-const makeBead = (): Bead => ({ id: _uid++, type: Math.random() < 0.5 ? "peach" : "plum" });
-const makeQueue = () => Array.from({ length: QUEUE_LEN }, makeBead);
 
 export default function Game() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  const [queue, setQueue] = useState<Bead[]>(makeQueue);
   const [score, setScore] = useState(0);
   const [best, setBest] = useState(0);
   const [phase, setPhase] = useState<"playing" | "over">("playing");
@@ -47,31 +27,19 @@ export default function Game() {
   const [name, setName] = useState("");
   const [submitState, setSubmitState] = useState<"idle" | "sending" | "done">("idle");
 
-  const queueRef = useRef(queue);
+  const fieldRef = useRef<FieldHandle>(null);
   const scoreRef = useRef(0);
-  const playingRef = useRef(true);
   const bestRef = useRef(0);
 
-  const progress = useSharedValue(1);
+  const handleScore = useCallback((s: number) => {
+    scoreRef.current = s;
+    setScore(s);
+    if (s === TURBO_SCORE) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+    }
+  }, []);
 
-  const startFruit = useCallback(
-    (dur: number) => {
-      cancelAnimation(progress);
-      progress.value = 1;
-      progress.value = withTiming(0, { duration: dur, easing: Easing.linear }, (finished) => {
-        if (finished) runOnJS(handleTimeout)();
-      });
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
-  );
-
-  const endGame = useCallback(() => {
-    if (!playingRef.current) return;
-    playingRef.current = false;
-    cancelAnimation(progress);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
-    const finalScore = scoreRef.current;
+  const handleGameOver = useCallback((finalScore: number) => {
     const newBest = finalScore > bestRef.current;
     setIsNewBest(newBest);
     if (newBest) {
@@ -80,66 +48,28 @@ export default function Game() {
       storage.setItem(BEST_KEY, finalScore);
     }
     setPhase("over");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function handleTimeout() {
-    endGame();
-  }
-
-  const handleTap = useCallback(
-    (type: FruitType) => {
-      if (!playingRef.current) return;
-      const target = queueRef.current[0];
-      if (!target) return;
-      if (type !== target.type) {
-        endGame();
-        return;
-      }
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-      const next = scoreRef.current + 1;
-      scoreRef.current = next;
-      setScore(next);
-      const nq = queueRef.current.slice(1);
-      nq.push(makeBead());
-      queueRef.current = nq;
-      setQueue(nq);
-      startFruit(durationForScore(next));
-    },
-    [endGame, startFruit]
-  );
-
   const restart = useCallback(() => {
-    const q = makeQueue();
-    queueRef.current = q;
-    scoreRef.current = 0;
-    playingRef.current = true;
-    setQueue(q);
-    setScore(0);
     setIsNewBest(false);
     setName("");
     setSubmitState("idle");
     setPhase("playing");
-    startFruit(durationForScore(0));
-  }, [startFruit]);
+    fieldRef.current?.restart();
+  }, []);
 
   useEffect(() => {
     storage.getItem(BEST_KEY, 0).then((v) => {
       bestRef.current = Number(v) || 0;
       setBest(Number(v) || 0);
     });
-    startFruit(durationForScore(0));
-    return () => cancelAnimation(progress);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const barStyle = useAnimatedStyle(() => ({ width: `${progress.value * 100}%` }));
 
   const onSubmit = useCallback(async () => {
     if (submitState !== "idle") return;
     setSubmitState("sending");
     try {
-      await submitScore(name.trim() || "ゲスト", scoreRef.current);
+      await submitScore(name.trim() || "Guest", scoreRef.current);
       setSubmitState("done");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     } catch {
@@ -147,8 +77,11 @@ export default function Game() {
     }
   }, [name, submitState]);
 
-  // render top->bottom, but queue[0] is the target (bottom), so reverse
-  const rendered = [...queue].reverse();
+  const isTurbo = score >= TURBO_SCORE;
+  const speedFrac = Math.min(
+    1,
+    Math.max(0, (speedFor(score) - speedFor(0)) / (speedFor(300) - speedFor(0)))
+  );
 
   return (
     <LinearGradient colors={[COLORS.bgTop, COLORS.bgBottom]} style={styles.fill} testID="game-screen">
@@ -169,48 +102,30 @@ export default function Game() {
         </View>
       </View>
 
-      {/* speed bar */}
-      <View style={styles.barTrack}>
-        <Animated.View style={[styles.barFill, barStyle]}>
-          <LinearGradient
-            colors={[COLORS.peach.btnFrom, COLORS.plum.btnFrom]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={StyleSheet.absoluteFill}
-          />
-        </Animated.View>
+      {/* speed meter */}
+      <View style={styles.meterRow}>
+        <Text style={[styles.meterLabel, isTurbo && styles.turboLabel]}>
+          {isTurbo ? "TURBO!!" : "SPEED"}
+        </Text>
+        <View style={styles.barTrack}>
+          <View style={[styles.barFill, { width: `${Math.round(speedFrac * 100)}%` }]}>
+            <LinearGradient
+              colors={isTurbo ? ["#FF5A3C", "#B01029"] : [COLORS.peach.btnFrom, COLORS.plum.btnFrom]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={StyleSheet.absoluteFill}
+            />
+          </View>
+        </View>
       </View>
 
-      {/* falling stack lane */}
-      <View style={styles.lane}>
-        <View style={styles.string} pointerEvents="none" />
-        <View style={styles.stack}>
-          {rendered.map((b, i) => {
-            const isTarget = b.id === queue[0]?.id;
-            return (
-              <Animated.View
-                key={b.id}
-                layout={LinearTransition.springify().damping(18).stiffness(160)}
-                entering={FadeInDown.duration(180)}
-                exiting={ZoomOut.duration(160)}
-                style={styles.bead}
-              >
-                <View style={isTarget ? styles.targetBead : undefined}>
-                  <FruitToken type={b.type} size={FRUIT} />
-                </View>
-              </Animated.View>
-            );
-          })}
-        </View>
-        <View style={styles.catchLine} pointerEvents="none">
-          <Ionicons name="chevron-up" size={20} color={COLORS.inkSoft} />
-        </View>
-      </View>
+      {/* falling stream */}
+      <FallingField ref={fieldRef} onScore={handleScore} onGameOver={handleGameOver} />
 
       {/* buttons */}
       <View style={[styles.buttons, { paddingBottom: insets.bottom + 16 }]}>
-        <FruitButton type="peach" onPress={() => handleTap("peach")} />
-        <FruitButton type="plum" onPress={() => handleTap("plum")} />
+        <FruitButton type="peach" onPress={() => fieldRef.current?.press("peach")} />
+        <FruitButton type="plum" onPress={() => fieldRef.current?.press("plum")} />
       </View>
 
       {/* game over overlay */}
@@ -227,16 +142,16 @@ export default function Game() {
                   <Text style={styles.newBestText}>NEW BEST!</Text>
                 </View>
               )}
-              <Text style={styles.overTitle}>ゲームオーバー</Text>
+              <Text style={styles.overTitle}>GAME OVER</Text>
               <Text style={styles.overScore} testID="final-score">
                 {score}
               </Text>
-              <Text style={styles.overBest}>ベスト {best}</Text>
+              <Text style={styles.overBest}>BEST {best}</Text>
 
               {submitState === "done" ? (
                 <View style={styles.doneBox}>
                   <Ionicons name="checkmark-circle" size={20} color="#3BA55C" />
-                  <Text style={styles.doneText}>ランキングに登録しました</Text>
+                  <Text style={styles.doneText}>Submitted to ranking!</Text>
                 </View>
               ) : (
                 <View style={styles.submitRow}>
@@ -244,7 +159,7 @@ export default function Game() {
                     testID="name-input"
                     value={name}
                     onChangeText={setName}
-                    placeholder="なまえ"
+                    placeholder="Name"
                     placeholderTextColor={COLORS.inkSoft}
                     maxLength={16}
                     style={styles.input}
@@ -258,7 +173,7 @@ export default function Game() {
                     style={({ pressed }) => [styles.submitBtn, pressed && styles.pressed]}
                   >
                     <Text style={styles.submitBtnText}>
-                      {submitState === "sending" ? "…" : "登録"}
+                      {submitState === "sending" ? "…" : "SAVE"}
                     </Text>
                   </Pressable>
                 </View>
@@ -276,7 +191,7 @@ export default function Game() {
                   style={styles.retryInner}
                 >
                   <Ionicons name="refresh" size={22} color="#fff" />
-                  <Text style={styles.retryText}>もう一度</Text>
+                  <Text style={styles.retryText}>RETRY</Text>
                 </LinearGradient>
               </Pressable>
 
@@ -287,7 +202,7 @@ export default function Game() {
                   style={({ pressed }) => [styles.overSmall, pressed && styles.pressed]}
                 >
                   <Ionicons name="home-outline" size={18} color={COLORS.ink} />
-                  <Text style={styles.overSmallText}>ホーム</Text>
+                  <Text style={styles.overSmallText}>HOME</Text>
                 </Pressable>
                 <Pressable
                   testID="overlay-ranking-button"
@@ -295,7 +210,7 @@ export default function Game() {
                   style={({ pressed }) => [styles.overSmall, pressed && styles.pressed]}
                 >
                   <Ionicons name="podium-outline" size={18} color={COLORS.ink} />
-                  <Text style={styles.overSmallText}>ランキング</Text>
+                  <Text style={styles.overSmallText}>RANKING</Text>
                 </Pressable>
               </View>
             </Animated.View>
@@ -325,7 +240,7 @@ function FruitButton({ type, onPress }: { type: FruitType; onPress: () => void }
         style={styles.fruitBtnInner}
       >
         <FruitToken type={type} size={52} />
-        <Text style={styles.fruitBtnLabel}>{LABELS[type].jp}</Text>
+        <Text style={styles.fruitBtnLabel}>{LABELS[type].en}</Text>
       </LinearGradient>
     </Pressable>
   );
@@ -373,10 +288,18 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   bestBoxText: { color: COLORS.ink, fontWeight: "800", fontSize: 15 },
-  barTrack: {
-    height: 12,
-    marginHorizontal: 20,
+  meterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 20,
     marginTop: 8,
+  },
+  meterLabel: { width: 62, color: COLORS.inkSoft, fontWeight: "900", fontSize: 12, letterSpacing: 2 },
+  turboLabel: { color: "#E23A2E" },
+  barTrack: {
+    flex: 1,
+    height: 12,
     borderRadius: 999,
     backgroundColor: "rgba(90,54,32,0.12)",
     overflow: "hidden",
@@ -526,3 +449,4 @@ const styles = StyleSheet.create({
   overSmallText: { color: COLORS.ink, fontWeight: "800", fontSize: 14 },
   pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
 });
+

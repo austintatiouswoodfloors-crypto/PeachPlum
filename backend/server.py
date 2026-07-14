@@ -36,7 +36,7 @@ class ScoreCreate(BaseModel):
     def clean_name(cls, v: str) -> str:
         v = (v or "").strip()
         if not v:
-            v = "ゲスト"
+            v = "Guest"
         return v[:16]
 
     @field_validator("score")

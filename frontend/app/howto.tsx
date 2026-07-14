@@ -8,15 +8,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/src/game/theme";
 import { FruitToken } from "@/src/game/FruitToken";
 
-function Step({ n, jp, en }: { n: number; jp: string; en: string }) {
+function Step({ n, text }: { n: number; text: string }) {
   return (
     <View style={styles.step}>
       <View style={styles.stepNum}>
         <Text style={styles.stepNumText}>{n}</Text>
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={styles.stepJp}>{jp}</Text>
-        <Text style={styles.stepEn}>{en}</Text>
+        <Text style={styles.stepJp}>{text}</Text>
       </View>
     </View>
   );
@@ -32,7 +31,7 @@ export default function HowTo() {
         <Pressable testID="howto-back" onPress={() => router.back()} style={styles.iconBtn}>
           <Ionicons name="arrow-back" size={22} color={COLORS.ink} />
         </Pressable>
-        <Text style={styles.headerTitle}>あそびかた</Text>
+        <Text style={styles.headerTitle}>HOW TO PLAY</Text>
         <View style={{ width: 44 }} />
       </View>
 
@@ -43,41 +42,35 @@ export default function HowTo() {
         <View style={styles.fruitsRow}>
           <View style={styles.fruitCard}>
             <FruitToken type="peach" size={78} />
-            <Text style={styles.fruitName}>もも</Text>
-            <Text style={styles.fruitNameEn}>PEACH</Text>
+            <Text style={styles.fruitName}>Peach</Text>
           </View>
           <View style={styles.fruitCard}>
             <FruitToken type="plum" size={78} />
-            <Text style={styles.fruitName}>すもも</Text>
-            <Text style={styles.fruitNameEn}>PLUM</Text>
+            <Text style={styles.fruitName}>Plum</Text>
           </View>
         </View>
 
         <Step
           n={1}
-          jp="落ちてくる もも と すもも を、順番どおりにボタンで受けとろう。"
-          en="Tap the matching button in the order the fruits arrive."
+          text="Tap the button that matches the lowest falling fruit."
         />
         <Step
           n={2}
-          jp="いちばん下のフルーツが今の目標。合うボタンを押すと消えるよ。"
-          en="The bottom fruit is your current target — tap its button to clear it."
+          text="Clear the fruit in order before they cross the dashed catch line."
         />
         <Step
           n={3}
-          jp="スピードはどんどん速くなる！ 時間切れに気をつけて。"
-          en="Speed keeps increasing — don't let the timer bar run out."
+          text="The stream keeps speeding up — at 200 it goes TURBO and scatters across the screen!"
         />
         <Step
           n={4}
-          jp="間違って押したり、時間切れになったらゲームオーバー。"
-          en="A wrong tap or a timeout ends the game."
+          text="A wrong tap or a missed fruit ends the game."
         />
 
         <View style={styles.tip}>
           <Ionicons name="bulb" size={18} color={COLORS.peach.btnTo} />
           <Text style={styles.tipText}>
-            ハイスコアはランキングに登録して、世界と競おう！
+            Submit your high score to the global ranking and compete with players worldwide!
           </Text>
         </View>
 
@@ -93,7 +86,7 @@ export default function HowTo() {
             style={styles.playInner}
           >
             <Ionicons name="play" size={24} color="#fff" />
-            <Text style={styles.playText}>あそぶ</Text>
+            <Text style={styles.playText}>PLAY</Text>
           </LinearGradient>
         </Pressable>
       </ScrollView>

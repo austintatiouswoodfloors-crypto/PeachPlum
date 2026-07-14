@@ -1,0 +1,44 @@
+{
+  "summary": "Iteration 2 (Plum Peach) full-stack testing PASSED. Backend: 13/13 pytest cases pass — health, POST /api/scores (basic, empty/whitespace/missing-name -> 'Guest' default (English, no longer Japanese), 16-char truncation, negative clamp, create->GET-top persistence), GET /api/scores/top (sort desc, limit clamp, no _id leak), GET /api/scores/rank (shape, high-score=1, missing-param 422). Frontend (mobile 375x667 web preview): title-screen loads with 'Plum Peach' / 'FRUIT REACTION GAME' / BEST / PLAY / HOW TO PLAY / RANKING. Howto/Ranking navigation and back work; ranking loads existing rows. Game screen renders SCORE, SPEED meter, PEACH & PLUM buttons and falling FallingField. gameover-overlay auto-triggers on a miss (~1–2s of inactivity) with all English labels (GAME OVER, BEST, SAVE, RETRY, HOME, RANKING) and Name placeholder. Score submit -> 'Submitted to ranking!' and row appears in /api/scores/top (verified via curl: TEST_PLYW row present). retry-button dismisses overlay and resets score to 0. Wrong/rapid taps trigger game over as expected. No Japanese characters detected on title, howto, game, or overlay. No red-screen or console errors.",
+  "backend_issues": { "critical": [], "minor": [
+    { "endpoint": "GET /api/", "issue": "Root still returns {'message': 'Momo Sumomo API'} — should be updated to 'Plum Peach API' for consistency with rename (cosmetic)." }
+  ]},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      { "screen": "global (react-native-web)", "issues": [
+        "Console deprecation warnings for shadow* style props on web (pre-existing; use boxShadow or Platform.select).",
+        "pointerEvents prop is deprecated on web; move into style.pointerEvents (index.tsx sun View, FallingField.tsx catchLine/ring)."
+      ]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "(Optional) Update root endpoint message from 'Momo Sumomo API' to 'Plum Peach API' in /app/backend/server.py.",
+    "(Cosmetic) Replace deprecated shadow* style props with boxShadow (or Platform.select) to silence RN-Web warnings.",
+    "(Cosmetic) Move pointerEvents from prop to style.pointerEvents in Views."
+  ],
+  "critical_code_review_comments": [
+    "FIXED (small typo, done by testing agent): game.tsx line 243 used LABELS[type].jp which does not exist in theme.ts (only .en is defined). Buttons rendered blank labels. Renamed to LABELS[type].en — PEACH/PLUM now render correctly. This was the only blocking migration miss.",
+    "theme.ts still exports unused durationForScore() from the old timed-per-fruit mechanic — safe to remove.",
+    "game.tsx still keeps unused old styles (lane/string/stack/bead/targetBead/catchLine) after the FallingField refactor — safe to remove for clarity.",
+    "Backend ScoreCreate validators correctly default empty/whitespace name to 'Guest' (English) and clamp negatives to 0; response excludes mongo _id via projection.",
+    "Frontend uses process.env.EXPO_PUBLIC_BACKEND_URL correctly; every interactive element has testID; all text is wrapped in <Text>; StyleSheet.create used throughout.",
+    "FallingField requestAnimationFrame loop correctly cancels on unmount and on game-over via stop()."
+  ],
+  "updated_files": [
+    "/app/frontend/app/game.tsx (fixed LABELS[type].jp -> .en so PEACH/PLUM labels render)",
+    "/app/backend/tests/backend_test.py (rewrote pytest suite: replaced Japanese-name/ゲスト assertions with English 'Guest'; added missing-name default case; 13 tests)"
+  ],
+  "success_rate": { "backend": "100% (13/13)", "frontend": "100% of deterministic flows" },
+  "seed_data_creation": "Pytest created TEST_-prefixed rows (TEST_player, TEST_persist2 99998, TEST_a2/b2/c2, TEST_neg, TEST_rank2, 2x Guest defaults) and UI created TEST_PLYW 0. Safe to leave for regression.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Base URL: https://cloba-mobile.preview.emergentagent.com. Backend /api/. Score submission fetch works from RN-Web (verified end-to-end). Game auto-ends within ~1.5s of inactivity due to lowest fruit crossing the catch line, so overlay tests can rely on that timeout. TEST_persist 99999 (from iteration 1) may still be rank #1 on the leaderboard. Small migration typo game.tsx LABELS[type].jp was fixed here.",
+  "rca_of_issue": "Bug: game screen fruit buttons rendered with blank/undefined label. RCA: main agent renamed LABELS keys from {jp,en} to just {en} in /app/frontend/src/game/theme.ts during the Japanese->English localization pass, but /app/frontend/app/game.tsx line 243 still read LABELS[type].jp. Repro: open /game — buttons show only fruit token, no PEACH/PLUM text. Fix: change LABELS[type].jp to LABELS[type].en in FruitButton. Verified after fix: buttons now show 'PEACH' and 'PLUM' (inner_text asserted). No other jp/Japanese references remain in app/ or src/."
+}
