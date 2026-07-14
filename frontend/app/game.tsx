@@ -206,7 +206,7 @@ function FruitButton({ type, onPress }: { type: FruitType; onPress: () => void }
       hitSlop={16}
       style={({ pressed }) => [styles.fruitBtn, pressed && { transform: [{ scale: 0.88 }] }]}
     >
-      <FruitToken type={type} size={112} />
+      <FruitToken type={type} size={150} />
     </Pressable>
   );
 }

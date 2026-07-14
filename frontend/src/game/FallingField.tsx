@@ -13,17 +13,17 @@ import * as Haptics from "expo-haptics";
 import { FruitToken } from "./FruitToken";
 import { FruitType } from "./theme";
 
-const GAP = 224; // vertical spacing between fruits in the stream
-const FRUIT = 190;
+const GAP = 160; // vertical spacing between fruits in the stream
+const FRUIT = 126;
 const BUFFER = 4; // fruits kept queued just above the top edge
 const INITIAL = 9;
-export const TURBO_SCORE = 200;
+export const TURBO_SCORE = 180;
 
-// Fall speed in px/sec. Starts slow, builds up gradually (reaches the old opening
-// pace around ~80 taps) and keeps climbing, then jumps to "super fast" turbo at 200.
+// Fall speed in px/sec. Every tap speeds it up; by ~180 taps it's typing-fast.
+// After 180 the speed STOPS increasing — instead fruit falls from random positions.
 export function speedFor(score: number): number {
-  if (score < TURBO_SCORE) return 70 + score * 0.75;
-  return 520 + (score - TURBO_SCORE) * 3;
+  const capped = Math.min(score, TURBO_SCORE);
+  return 70 + capped * 2.5;
 }
 
 type Bead = { id: number; type: FruitType; x: number; baseY: number };
