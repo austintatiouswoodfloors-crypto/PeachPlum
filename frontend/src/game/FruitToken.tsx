@@ -54,19 +54,6 @@ export function FruitToken({ type, size }: Props) {
           end={{ x: 0.86, y: 1 }}
           style={StyleSheet.absoluteFill}
         />
-        {/* cleft / crease */}
-        <View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            top: size * 0.04,
-            bottom: size * 0.04,
-            left: size * 0.485,
-            width: size * 0.05,
-            backgroundColor: "rgba(0,0,0,0.14)",
-            borderRadius: size,
-          }}
-        />
         {/* specular highlight */}
         <View
           pointerEvents="none"

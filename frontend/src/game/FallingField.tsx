@@ -13,7 +13,7 @@ import * as Haptics from "expo-haptics";
 import { FruitToken } from "./FruitToken";
 import { FruitType } from "./theme";
 
-const GAP = 160; // vertical spacing between fruits in the stream
+const GAP = 112; // vertical spacing between fruits (touching, no gap)
 const FRUIT = 126;
 const BUFFER = 4; // fruits kept queued just above the top edge
 const INITIAL = 9;
@@ -67,7 +67,7 @@ export const FallingField = forwardRef<FieldHandle, Props>(function FallingField
   const dimsRef = useRef<{ w: number; h: number } | null>(null);
   const particlesRef = useRef<Particle[]>([]);
 
-  const missY = useCallback(() => dimsRef.current!.h - FRUIT - 4, []);
+  const missY = useCallback(() => dimsRef.current!.h - 6, []);
 
   // Firecracker burst when a fruit pops.
   const burst = useCallback((cx: number, cy: number, type: FruitType) => {

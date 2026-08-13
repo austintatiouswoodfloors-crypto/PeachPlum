@@ -96,13 +96,13 @@ export default function Game() {
         </View>
       </View>
 
-      {/* falling stream */}
-      <FallingField ref={fieldRef} onScore={handleScore} onGameOver={handleGameOver} />
-
-      {/* buttons */}
-      <View style={[styles.buttons, { paddingBottom: insets.bottom + 20 }]}>
-        <FruitButton type="peach" onPress={() => fieldRef.current?.press("peach")} />
-        <FruitButton type="plum" onPress={() => fieldRef.current?.press("plum")} />
+      {/* falling stream + buttons overlay */}
+      <View style={styles.playZone}>
+        <FallingField ref={fieldRef} onScore={handleScore} onGameOver={handleGameOver} />
+        <View style={[styles.buttons, { bottom: insets.bottom + 20 }]}>
+          <FruitButton type="peach" onPress={() => fieldRef.current?.press("peach")} />
+          <FruitButton type="plum" onPress={() => fieldRef.current?.press("plum")} />
+        </View>
       </View>
 
       {/* game over overlay */}
@@ -295,12 +295,15 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     opacity: 0.6,
   },
+  playZone: { flex: 1, overflow: "hidden" },
   buttons: {
+    position: "absolute",
+    left: 0,
+    right: 0,
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
     paddingHorizontal: 24,
-    paddingTop: 8,
   },
   fruitBtn: {
     alignItems: "center",
