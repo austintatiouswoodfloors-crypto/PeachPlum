@@ -56,4 +56,14 @@ shrinks and gets shorter as score rises. A WRONG tap OR a timeout = GAME OVER.
   RANDOM x-positions across the screen (single centered column before 200).
   `speedFor(score)`: <200 → 120+score*1.15 ; ≥200 → 620+(score-200)*3.2.
 - Top HUD now shows a SPEED meter (turns red "TURBO!!" at 200+).
-- Verified: 13/13 backend tests + all frontend flows pass.
+## Update (iteration 3)
+- **Smoothness fix**: rewrote `FallingField.tsx` to run motion on the **Reanimated UI thread**
+  (`useFrameCallback` advancing a shared `travel` value; fruits are `Animated.View` +
+  `useAnimatedStyle`). React now re-renders only on spawn/pop, not every frame — eliminates the
+  choppy/glitchy stream. Miss detection via `useAnimatedReaction`; spawns via a light 90ms JS
+  interval; firecracker particles are Reanimated `Burst` components.
+- **Web version**: same Expo codebase runs on web; verified the full flow (title → game → overlay
+  → ranking) plays smoothly on the web preview with 0 console errors.
+- Fruit touch with no gap (GAP 112 / FRUIT 126); crease line removed; per-tap speed ramp to score
+  180 then hold + random-x scatter; game-over boundary sits just below the buttons.
+- Verified: 13/13 backend tests + all web frontend flows pass.

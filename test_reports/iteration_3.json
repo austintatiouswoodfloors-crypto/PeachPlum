@@ -1,0 +1,41 @@
+{
+  "summary": "Iteration 3 verifies the smoothness bug fix (Reanimated UI-thread motion) + full-stack regression. Backend: 13/13 pytest cases pass (health returns 'Plum Peach API'; POST /api/scores basic/empty→Guest/whitespace→Guest/16-char truncate/negative-clamp/persistence; GET /api/scores/top sort desc, limit clamp, no _id; GET /api/scores/rank shape, high-score=1, missing 422). Frontend (390x844 web preview) VERIFIED: (a) game-screen loads with no red-screen and NO reanimated/worklet/useFrameCallback errors (0 console errors observed); (b) FRUITS ACTUALLY MOVE DOWN — measured 9/14 fruits shifted top>5px between two captures ~900ms apart (matches speedFor(0)=70 px/s); (c) motion RESUMES smoothly after retry (9/14 moved post-retry); (d) miss game-over overlay auto-triggers on inactivity; (e) score submit → 'Submitted to ranking!'; (f) retry-button clears overlay & resets score to 0; (g) wrong-tap on non-lowest fruit immediately triggers gameover-overlay; (h) overlay-ranking-button navigates to ranking-screen which lists 35 rank-row-N entries. Only console noise = pre-existing RN-Web deprecation warnings for shadow* and pointerEvents (cosmetic). No Japanese text, no red screen, no crashes.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      { "screen": "global (react-native-web)", "issues": [
+        "Pre-existing (non-blocking) console warnings: 'shadow* style props are deprecated. Use boxShadow'.",
+        "Pre-existing (non-blocking) console warnings: 'props.pointerEvents is deprecated. Use style.pointerEvents'."
+      ]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "(Optional cosmetic) Replace shadow* style props with boxShadow / Platform.select to silence RN-Web deprecation warnings.",
+    "(Optional cosmetic) Move pointerEvents from prop to style.pointerEvents in index.tsx sun View and any FallingField overlays.",
+    "(Optional cleanup) game.tsx still keeps unused legacy styles (lane/string/stack/bead/targetBead/catchLine, fruitBtnInner/fruitBtnLabel/meterRow/meterLabel/turboLabel/barTrack/barFill) after refactor — safe to remove."
+  ],
+  "critical_code_review_comments": [
+    "Smoothness fix is correctly implemented on the UI thread: useFrameCallback worklet advances a shared 'travel' value each frame; FallingFruit uses useAnimatedStyle so React does NOT re-render per frame. Spawn/pop still happens on JS via a 90ms setInterval reading travel.value — acceptable trade-off; verified no lag or worklet errors on web.",
+    "Miss detection is frame-accurate via useAnimatedReaction on running.value && travel.value > missThreshold.value, and hops back to JS via runOnJS(handleMiss) — correct and idempotent (stop() flips running.value=false so it fires only once).",
+    "recomputeMiss() is called after every spawn and after every successful press, keeping missThreshold in sync with the current lowest fruit — correct.",
+    "restart() properly resets travel/speed/score/list, clears bursts, sets running true and re-creates the 90ms spawn interval; stop() clears interval and both running flags — no leak.",
+    "Burst uses withTiming with runOnJS(onDone) to remove itself — no orphaned particle nodes.",
+    "Backend: response models exclude _id via projection ({_id:0}) and Pydantic Score model; name defaults to 'Guest' and truncates to 16; negative score clamps to 0.",
+    "Frontend uses process.env.EXPO_PUBLIC_BACKEND_URL correctly; every interactive element has testID; StyleSheet.create used throughout; all text wrapped in <Text>.",
+    "No deprecated Expo packages (expo-av / expo-barcode-scanner / expo-background-fetch) are imported."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "100% (13/13)", "frontend": "100% of deterministic flows (motion, miss, wrong-tap, submit, retry, navigation)" },
+  "seed_data_creation": "Playwright submitted TEST_MOTION (score 0). Pytest re-created TEST_-prefixed rows. Safe to leave for regression.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Base URL: https://cloba-mobile.preview.emergentagent.com. Backend /api/. Smoothness bug fix confirmed on web preview via pixel-level motion assertion (9/14 fruits moved >5px in ~900ms) and 0 reanimated/worklet console errors. Miss auto-fires within ~1.5s of inactivity so overlay tests can rely on it. Ranking has 35+ rows; TEST_persist 99999 remains #1.",
+  "rca_of_issue": "N/A — the smoothness bug (choppy per-frame JS re-renders) has been correctly resolved by moving motion to the Reanimated UI thread. Verified end-to-end on the web preview."
+}
